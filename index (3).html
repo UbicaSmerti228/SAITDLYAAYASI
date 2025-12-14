@@ -3,308 +3,426 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор сетки для наклеек (A4)</title>
+    <title>Конструктор Наклеек v3.0 (Clean)</title>
     <style>
         :root {
-            --bg-color: #f4f4f9;
+            --bg-color: #eef2f5;
             --panel-bg: #ffffff;
             --text-color: #333;
-            --accent-color: #4a90e2;
-            --border-color: #ddd;
+            --accent-color: #3498db;
+            --danger-color: #e74c3c;
+            --success-color: #27ae60;
+            --border-color: #dde1e6;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             height: 100vh;
             display: flex;
-            overflow: hidden; /* Скролл только внутри панелей */
+            overflow: hidden;
         }
 
-        /* --- Панель настроек (слева) --- */
+        /* --- ЛЕВАЯ ПАНЕЛЬ --- */
         .settings-panel {
-            width: 320px;
+            width: 350px;
             background: var(--panel-bg);
             border-right: 1px solid var(--border-color);
             padding: 20px;
             overflow-y: auto;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            display: flex; flex-direction: column; gap: 12px;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.03);
             z-index: 10;
         }
 
-        h2 { margin-top: 0; font-size: 1.2rem; }
-        h3 { font-size: 0.9rem; margin-bottom: 8px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        h2 { margin: 0 0 10px 0; font-size: 1.3rem; color: #2c3e50; display: flex; align-items: center; gap: 10px; }
+        h3 { font-size: 0.8rem; color: #8898aa; text-transform: uppercase; border-bottom: 2px solid #f4f5f7; padding-bottom: 6px; margin-top: 15px; letter-spacing: 0.5px; }
 
-        .control-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        .control-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px; }
+        .control-full { width: 100%; margin-bottom: 5px; }
+        
+        label { display: block; font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: #555; }
+        input, select { 
+            width: 100%; padding: 8px; 
+            border: 1px solid #ced4da; border-radius: 6px; 
+            box-sizing: border-box; font-size: 14px; 
+            transition: border 0.2s;
         }
+        input:focus, select:focus { border-color: var(--accent-color); outline: none; }
 
-        .control-full { grid-column: span 2; }
-
-        label {
-            display: block;
-            font-size: 0.85rem;
-            margin-bottom: 4px;
+        /* Кнопки */
+        .btn {
+            border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; 
+            font-weight: 600; font-size: 0.9rem; transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
         }
+        .btn:active { transform: scale(0.98); }
+        .btn-add { background-color: var(--accent-color); color: white; margin-top: 10px; box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2); }
+        .btn-add:hover { background-color: #2980b9; }
 
-        input[type="number"], input[type="color"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 1rem;
+        .btn-fill { background-color: #9b59b6; color: white; margin-top: 5px; font-size: 0.8rem; padding: 8px; }
+        
+        .btn-clear { background-color: #fff; border: 1px solid var(--danger-color); color: var(--danger-color); margin-top: 5px; }
+        .btn-clear:hover { background-color: var(--danger-color); color: white; }
+
+        .btn-print { background-color: var(--success-color); color: white; margin-top: auto; padding: 16px; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); }
+        .btn-print:hover { background-color: #219150; }
+
+        /* Список добавленных */
+        .added-list {
+            flex: 1; min-height: 100px; max-height: 250px;
+            overflow-y: auto; border: 1px solid #eee; border-radius: 8px; background: #fafafa;
         }
-
-        input[type="color"] { padding: 2px; height: 38px; cursor: pointer; }
-
-        .btn-print {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 12px;
-            font-size: 1rem;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: auto; /* Прижать к низу */
+        .added-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; border-bottom: 1px solid #eee; font-size: 0.85rem; background: white;
         }
-        .btn-print:hover { background-color: #357abd; }
+        .added-item:last-child { border-bottom: none; }
+        .item-info { display: flex; align-items: center; gap: 8px; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #ddd; }
 
-        .stats {
-            background: #eef;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            text-align: center;
-            border: 1px solid #dde;
-        }
-
-        /* --- Область предпросмотра (справа) --- */
+        /* --- ПРАВАЯ ЧАСТЬ (ПРЕДПРОСМОТР) --- */
         .preview-area {
-            flex: 1;
-            padding: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            overflow: auto;
-            background-color: #888; /* Темный фон для контраста с белым листом */
+            flex: 1; padding: 40px;
+            display: flex; justify-content: center; align-items: flex-start;
+            overflow: auto; background-color: #525659; /* Цвет как в Adobe Acrobat */
         }
 
-        /* --- Сам лист А4 --- */
         #sheet {
-            /* Физические размеры А4 */
-            width: 210mm;
-            height: 297mm;
+            width: 210mm; height: 297mm;
             background: white;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            position: relative;
-            box-sizing: border-box; /* Важно для отступов */
-            
-            /* Сетка */
-            display: grid;
-            /* grid-template-columns и rows задаются через JS */
-            align-content: start; 
-            justify-content: start;
-        }
-
-        /* --- Ячейка (наклейка) --- */
-        .sticker-cell {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: flex-start;
+            position: relative; overflow: hidden;
             box-sizing: border-box;
-            /* Границы задаются через JS (цвет и толщина) */
+            transform-origin: top center;
         }
 
-        /* --- Стили печати (Самое важное!) --- */
+        /* Стиль наклейки */
+        .sticker {
+            box-sizing: border-box;
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+            page-break-inside: avoid;
+        }
+        
+        .sticker-content {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            pointer-events: none; /* Чтобы текст не мешал кликам (на будущее) */
+        }
+
+        .sticker img {
+            max-width: 100%; max-height: 100%;
+            object-fit: contain; /* Картинка всегда влезает целиком */
+            display: block;
+        }
+
+        .sticker span {
+            white-space: pre-wrap; /* Перенос строк */
+            line-height: 1.2;
+            max-width: 100%;
+        }
+
+        /* ЛИНИИ РЕЗА (опционально) */
+        .cut-lines .sticker {
+            outline: 1px dashed #ccc;
+            z-index: 1;
+        }
+
+        /* ПЕРЕПОЛНЕНИЕ */
+        #sheet.overflowed { border-bottom: 5px solid var(--danger-color); }
+        .warning-msg {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--danger-color); color: white; padding: 10px 20px;
+            border-radius: 20px; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none; z-index: 100;
+        }
+
+        /* --- ПЕЧАТЬ --- */
         @media print {
-            @page {
-                size: A4;
-                margin: 0; /* Убираем дефолтные отступы принтера */
-            }
-
-            body {
-                background: white;
-                height: auto;
-                overflow: visible;
-                display: block;
-            }
-
+            @page { size: A4; margin: 0; }
+            body { background: white; display: block; height: auto; }
             .settings-panel { display: none !important; }
-            .preview-area { 
-                padding: 0; 
-                background: white; 
-                display: block;
-                overflow: visible;
+            .preview-area { padding: 0; background: white; display: block; overflow: visible; }
+            .warning-msg { display: none !important; }
+            
+            #sheet { 
+                box-shadow: none; margin: 0; width: 210mm; height: 297mm;
+                /* Важно для точных размеров при печати */
+                print-color-adjust: exact; 
+                -webkit-print-color-adjust: exact;
             }
-
-            #sheet {
-                box-shadow: none;
-                margin: 0;
-                width: 210mm;
-                height: 297mm;
-                /* При печати иногда нужны точные корректировки, но 210mm обычно работает */
-            }
+            
+            /* При печати линии реза становятся тонкими и серыми, если включены */
+            .cut-lines .sticker { outline: 0.5px solid #bbb; }
         }
     </style>
 </head>
 <body>
 
     <div class="settings-panel">
-        <h2>Настройки сетки</h2>
-
-        <div class="stats" id="stats-counter">
-            Помещается: 0 шт.
-        </div>
-
-        <h3>Размер наклейки (мм)</h3>
+        <h2>🛠️ Конструктор v3.0</h2>
+        
+        <h3>1. Параметры листа</h3>
         <div class="control-group">
-            <div>
-                <label>Ширина</label>
-                <input type="number" id="itemWidth" value="60" min="1" oninput="updateGrid()">
-            </div>
-            <div>
-                <label>Высота</label>
-                <input type="number" id="itemHeight" value="40" min="1" oninput="updateGrid()">
-            </div>
+            <div><label>Поля (мм)</label><input type="number" id="pageMargin" value="10" min="0" onchange="renderSheet()"></div>
+            <div><label>Зазор (мм)</label><input type="number" id="gap" value="0" min="0" onchange="renderSheet()"></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; margin-top:5px;">
+            <input type="checkbox" id="showCutLines" style="width:auto;" onchange="toggleCutLines()" checked>
+            <label for="showCutLines" style="margin:0; cursor:pointer;">Показать линии для резки</label>
         </div>
 
-        <h3>Отступы листа (мм)</h3>
+        <h3>2. Дизайн наклейки</h3>
         <div class="control-group">
-            <div>
-                <label>Верх</label>
-                <input type="number" id="marginTop" value="10" min="0" oninput="updateGrid()">
-            </div>
-            <div>
-                <label>Низ</label>
-                <input type="number" id="marginBottom" value="10" min="0" oninput="updateGrid()">
-            </div>
-            <div>
-                <label>Лево</label>
-                <input type="number" id="marginLeft" value="10" min="0" oninput="updateGrid()">
-            </div>
-            <div>
-                <label>Право</label>
-                <input type="number" id="marginRight" value="10" min="0" oninput="updateGrid()">
-            </div>
+            <div><label>Ширина (мм)</label><input type="number" id="newWidth" value="60"></div>
+            <div><label>Высота (мм)</label><input type="number" id="newHeight" value="40"></div>
         </div>
-
-        <h3>Зазоры между (мм)</h3>
+        
+        <div class="control-full">
+            <label>Текст (оставьте пустым для чистого листа)</label>
+            <input type="text" id="newText" placeholder="">
+        </div>
+        
         <div class="control-group">
-            <div>
-                <label>По гор.</label>
-                <input type="number" id="gapX" value="2" min="0" oninput="updateGrid()">
-            </div>
-            <div>
-                <label>По верт.</label>
-                <input type="number" id="gapY" value="2" min="0" oninput="updateGrid()">
+            <div><label>Размер шрифта</label><input type="number" id="fontSize" value="12"></div>
+            <div><label>Выравнивание</label>
+                <select id="alignment">
+                    <option value="center">По центру</option>
+                    <option value="flex-start">Вверху</option>
+                    <option value="flex-end">Внизу</option>
+                </select>
             </div>
         </div>
 
-        <h3>Линии</h3>
+        <div class="control-full">
+            <label>Картинка (необязательно)</label>
+            <input type="file" id="newImage" accept="image/*" style="border:none; padding-left:0;">
+        </div>
+
+        <div class="control-group" style="margin-top:5px;">
+            <div><label>Цвет фона</label><input type="color" id="bgColor" value="#ffffff"></div>
+            <div><label>Рамка</label>
+                <select id="borderStyle">
+                    <option value="none">Нет</option>
+                    <option value="1px solid #000">Тонкая</option>
+                    <option value="2px solid #000">Жирная</option>
+                </select>
+            </div>
+        </div>
+
+        <h3>3. Действия</h3>
         <div class="control-group">
-            <div>
-                <label>Цвет</label>
-                <input type="color" id="lineColor" value="#000000" oninput="updateGrid()">
-            </div>
-            <div>
-                <label>Толщина (px)</label>
-                <input type="number" id="lineThickness" value="1" min="0.1" step="0.1" oninput="updateGrid()">
-            </div>
+            <div><label>Кол-во</label><input type="number" id="newCount" value="1"></div>
+            <button class="btn btn-add" style="margin:0; height: 36px;" onclick="addStickers()">Добавить</button>
         </div>
+        <button class="btn btn-fill" onclick="fillPage()">🪄 Заполнить остаток листа этими наклейками</button>
 
-        <button class="btn-print" onclick="window.print()">🖨️ Распечатать</button>
+        <h3>Состав листа</h3>
+        <div class="added-list" id="logList"></div>
+        <button class="btn btn-clear" onclick="clearSheet()">🗑️ Очистить лист</button>
+
+        <button class="btn btn-print" onclick="window.print()">🖨️ Печать PDF</button>
     </div>
 
     <div class="preview-area">
-        <div id="sheet">
-            </div>
+        <div class="warning-msg" id="warningMsg">⚠️ Элементы не влезают на одну страницу!</div>
+        <div id="sheet" class="cut-lines"></div>
     </div>
 
     <script>
-        // Основные константы размера А4
-        const A4_WIDTH = 210;
-        const A4_HEIGHT = 297;
+        let stickerGroups = [];
 
-        function updateGrid() {
-            // 1. Получаем значения из полей
-            const width = parseFloat(document.getElementById('itemWidth').value) || 0;
-            const height = parseFloat(document.getElementById('itemHeight').value) || 0;
+        // Функция добавления новой партии
+        function addStickers(overrideCount = null) {
+            const w = parseFloat(document.getElementById('newWidth').value);
+            const h = parseFloat(document.getElementById('newHeight').value);
+            const count = overrideCount !== null ? overrideCount : parseInt(document.getElementById('newCount').value);
+            const bg = document.getElementById('bgColor').value;
+            const text = document.getElementById('newText').value;
+            const fontSize = document.getElementById('fontSize').value;
+            const align = document.getElementById('alignment').value;
+            const border = document.getElementById('borderStyle').value;
             
-            const mT = parseFloat(document.getElementById('marginTop').value) || 0;
-            const mB = parseFloat(document.getElementById('marginBottom').value) || 0;
-            const mL = parseFloat(document.getElementById('marginLeft').value) || 0;
-            const mR = parseFloat(document.getElementById('marginRight').value) || 0;
-
-            const gapX = parseFloat(document.getElementById('gapX').value) || 0;
-            const gapY = parseFloat(document.getElementById('gapY').value) || 0;
-
-            const color = document.getElementById('lineColor').value;
-            const thickness = document.getElementById('lineThickness').value;
-
-            const sheet = document.getElementById('sheet');
-            const counter = document.getElementById('stats-counter');
-
-            // Защита от зависания при нулевых/негативных размерах
-            if (width <= 0 || height <= 0) {
-                sheet.innerHTML = '';
-                counter.innerText = "Ошибка в размерах";
-                return;
-            }
-
-            // 2. Рассчитываем доступное пространство
-            const availableWidth = A4_WIDTH - mL - mR;
-            const availableHeight = A4_HEIGHT - mT - mB;
-
-            if (availableWidth <= 0 || availableHeight <= 0) {
-                sheet.innerHTML = '';
-                counter.innerText = "Отступы больше листа!";
-                return;
-            }
-
-            // 3. Считаем количество колонок и рядов
-            // Формула: (Размер + Зазор) * N - Зазор <= Доступно
-            // Упрощенно для CSS Grid (gap считается между элементами):
-            // N * W + (N-1) * G <= Avail -> N * (W+G) - G <= Avail -> N * (W+G) <= Avail + G
-            const cols = Math.floor((availableWidth + gapX) / (width + gapX));
-            const rows = Math.floor((availableHeight + gapY) / (height + gapY));
-            const totalItems = cols * rows;
-
-            // 4. Применяем стили к контейнеру листа
-            sheet.style.paddingTop = mT + 'mm';
-            sheet.style.paddingBottom = mB + 'mm';
-            sheet.style.paddingLeft = mL + 'mm';
-            sheet.style.paddingRight = mR + 'mm';
+            const imageInput = document.getElementById('newImage');
             
-            // Настройка Grid Layout
-            sheet.style.gridTemplateColumns = `repeat(${cols}, ${width}mm)`;
-            sheet.style.gridTemplateRows = `repeat(${rows}, ${height}mm)`;
-            sheet.style.columnGap = gapX + 'mm';
-            sheet.style.rowGap = gapY + 'mm';
+            if (!w || !h || !count) return;
 
-            // 5. Генерируем ячейки
-            sheet.innerHTML = ''; // Очистка
-            
-            for (let i = 0; i < totalItems; i++) {
-                const div = document.createElement('div');
-                div.className = 'sticker-cell';
-                div.style.border = `${thickness}px solid ${color}`;
-                sheet.appendChild(div);
+            // Читаем файл, если есть
+            if (imageInput.files && imageInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    saveAndRender(w, h, count, bg, text, fontSize, align, border, e.target.result);
+                }
+                reader.readAsDataURL(imageInput.files[0]);
+            } else {
+                saveAndRender(w, h, count, bg, text, fontSize, align, border, null);
             }
-
-            // 6. Обновляем счетчик
-            counter.innerText = `Сетка: ${cols} x ${rows} | Всего: ${totalItems} шт.`;
         }
 
-        // Инициализация при загрузке
-        window.onload = updateGrid;
+        // Сохранение данных и перерисовка
+        function saveAndRender(w, h, count, bg, text, fontSize, align, border, imgData) {
+            stickerGroups.push({
+                width: w, height: h, count, bg, text, fontSize, align, border, imgData
+            });
+            updateLog();
+            renderSheet();
+            
+            // Очищаем поля ввода текста и файла для удобства следующего ввода
+            document.getElementById('newText').value = '';
+            document.getElementById('newImage').value = ''; 
+        }
+
+        // "Умное" заполнение страницы
+        function fillPage() {
+            const sheet = document.getElementById('sheet');
+            const w = parseFloat(document.getElementById('newWidth').value);
+            const h = parseFloat(document.getElementById('newHeight').value);
+            const margin = parseFloat(document.getElementById('pageMargin').value);
+            const gap = parseFloat(document.getElementById('gap').value);
+
+            // Размеры листа A4 в мм
+            const sheetW = 210;
+            const sheetH = 297;
+
+            // Доступное пространство
+            const availableW = sheetW - (margin * 2);
+            const availableH = sheetH - (margin * 2);
+
+            // Сколько влезает в одну строку
+            const perRow = Math.floor((availableW + gap) / (w + gap));
+            // Сколько строк влезает
+            const rows = Math.floor((availableH + gap) / (h + gap));
+            
+            const totalCapacity = perRow * rows;
+
+            // Считаем сколько уже занято
+            let currentCount = 0;
+            stickerGroups.forEach(g => currentCount += g.count);
+
+            const needed = totalCapacity - currentCount;
+
+            if (needed > 0) {
+                addStickers(needed);
+            } else {
+                alert("Лист уже полон или переполнен!");
+            }
+        }
+
+        function clearSheet() {
+            stickerGroups = [];
+            updateLog();
+            renderSheet();
+        }
+
+        function removeGroup(index) {
+            stickerGroups.splice(index, 1);
+            updateLog();
+            renderSheet();
+        }
+
+        function toggleCutLines() {
+            const sheet = document.getElementById('sheet');
+            const chk = document.getElementById('showCutLines');
+            if (chk.checked) sheet.classList.add('cut-lines');
+            else sheet.classList.remove('cut-lines');
+        }
+
+        function updateLog() {
+            const list = document.getElementById('logList');
+            list.innerHTML = '';
+            if (stickerGroups.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">Список пуст</div>';
+                return;
+            }
+
+            stickerGroups.forEach((group, index) => {
+                const item = document.createElement('div');
+                item.className = 'added-item';
+                
+                let desc = group.text ? `"${group.text.substring(0,15)}..."` : "Пустая / Картинка";
+                if (!group.text && !group.imgData) desc = "Чистый бланк";
+
+                item.innerHTML = `
+                    <div class="item-info">
+                        <div class="color-dot" style="background:${group.bg}"></div>
+                        <div>
+                            <b>${group.count} шт</b> <span style="color:#888; font-size:0.75rem">(${group.width}x${group.height}мм)</span>
+                            <br><div style="color:#555; font-size:0.75rem">${desc}</div>
+                        </div>
+                    </div>
+                    <button onclick="removeGroup(${index})" style="border:none; background:none; cursor:pointer; color:#e74c3c; font-size:1.2rem;">&times;</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function renderSheet() {
+            const sheet = document.getElementById('sheet');
+            const margin = document.getElementById('pageMargin').value + 'mm';
+            const gap = document.getElementById('gap').value + 'mm';
+            const warning = document.getElementById('warningMsg');
+
+            sheet.innerHTML = '';
+            sheet.style.padding = margin;
+            sheet.style.gap = gap;
+            sheet.classList.remove('overflowed');
+            warning.style.display = 'none';
+
+            stickerGroups.forEach(group => {
+                for (let i = 0; i < group.count; i++) {
+                    const el = document.createElement('div');
+                    el.className = 'sticker';
+                    el.style.width = group.width + 'mm';
+                    el.style.height = group.height + 'mm';
+                    el.style.backgroundColor = group.bg;
+                    el.style.border = group.border;
+                    
+                    // Создаем контейнер для контента с выравниванием
+                    const content = document.createElement('div');
+                    content.className = 'sticker-content';
+                    content.style.justifyContent = group.align;
+                    content.style.alignItems = 'center'; // Всегда центрируем по горизонтали
+                    
+                    // Цвет текста (черный или белый в зависимости от фона - простая логика)
+                    content.style.color = '#000'; 
+
+                    // 1. Сначала картинка (если есть)
+                    if (group.imgData) {
+                        const img = document.createElement('img');
+                        img.src = group.imgData;
+                        // Отступы, чтобы картинка не прилипала к краям
+                        img.style.padding = '2px';
+                        content.appendChild(img);
+                    }
+
+                    // 2. Затем текст (если есть)
+                    if (group.text && group.text.trim() !== "") {
+                        const span = document.createElement('span');
+                        span.innerText = group.text;
+                        span.style.fontSize = group.fontSize + 'px';
+                        span.style.padding = '2px';
+                        content.appendChild(span);
+                    }
+
+                    // Если и текста и картинки нет — content останется пустым, наклейка будет "чистой"
+                    el.appendChild(content);
+                    sheet.appendChild(el);
+                }
+            });
+
+            // Проверка на переполнение (с небольшим допуском 2px)
+            if (sheet.scrollHeight > sheet.clientHeight + 2) {
+                sheet.classList.add('overflowed');
+                warning.style.display = 'block';
+            }
+        }
+
+        // Запуск при старте
+        updateLog();
     </script>
 </body>
 </html>
